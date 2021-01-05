@@ -14,10 +14,9 @@ export function usePrevious(value) {
 
 
 // useState, however when the dependancy value changes, reset state in place to default state
-function useDependentState(dependancyValue, defaultState){
+export function useDependentState(dependancyValue, defaultState){
 
   var [value, setValue] = useState(defaultState);
-  var valueRef = useRef(state);
 
   var prevDep = usePrevious(dependancyValue);
   if(prevDep !== dependancyValue){
