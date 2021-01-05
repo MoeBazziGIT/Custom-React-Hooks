@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 
-// custom hook for getting previous value
+// get value from previous update to that value
 export function usePrevious(value) {
 
   const ref = useRef();
@@ -9,5 +9,21 @@ export function usePrevious(value) {
   }, [value]);
 
   return ref.current;
+
+}
+
+
+// useState, however when the dependancy value changes, reset state in place to default state
+function useDependentState(dependancyValue, defaultState){
+
+  var [value, setValue] = useState(defaultState);
+  var valueRef = useRef(state);
+
+  var prevDep = usePrevious(dependancyValue);
+  if(prevDep !== dependancyValue){
+    value = defaultState;
+  }
+
+  return [value, setValue];
 
 }
