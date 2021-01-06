@@ -13,7 +13,7 @@ export function usePrevious(value) {
 }
 
 
-// useState, however when the dependancy value changes, reset state in place to default state
+// useState, however when the dependancy value changes, reset state value to default state
 export function useDependentState(dependancyValue, defaultState){
 
   var [value, setValue] = useState(defaultState);
@@ -30,7 +30,7 @@ export function useDependentState(dependancyValue, defaultState){
 
 
 // unmounts and remounts component on update of dependancies
-//  leave out dependies parameter in order unmount/mount on every render of parent component of component
+//  Leave out dependencies parameter in order to unmount/mount on every render of parent component of component
 
 // make sure to perform proper clean ups in component before unmounting:
 //    -> return a callback method in useEffect(() => return cleanUpMethod, []) ie. componentWillUnmount
