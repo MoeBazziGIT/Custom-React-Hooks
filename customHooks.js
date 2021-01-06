@@ -34,13 +34,16 @@ export function useDependentState(dependencyValue, defaultState){
 
 // make sure to perform proper clean ups in component before unmounting:
 //    -> return a callback method in useEffect(() => return cleanUpMethod, []) ie. componentWillUnmount
+
+// UPDATE: this works but is really unefficnet and unecessary. Causes two addition unecessary renders of parent component.
+//  Just use key property in component to let react handle unmounting and remounting of components
 export function useAutoUmountingComponent(newComponent, dependancies){
 
   var [component, setComponent] = useState(-1);
 
   useEffect(() => {
 
-    setComponent(null)
+    setComponent(null);
 
   }, dependancies);
 
