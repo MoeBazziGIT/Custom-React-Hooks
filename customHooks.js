@@ -59,3 +59,21 @@ export function useAutoUmountingComponent(newComponent, dependancies){
   return component;
 
 }
+
+
+// just a short hand for setting up componentDidMount and componentWillUnMount hooks with useEffect
+export function useMountCallBacks(componentDidMountCallBack, componentWillUnMountCallBack){
+
+  // component did mount
+  useEffect(() => {
+
+    componentDidMountCallBack();
+
+    // component will unmount
+    return () => {
+      componentWillUnMountCallBack();
+    }
+
+  }, []);
+
+}
