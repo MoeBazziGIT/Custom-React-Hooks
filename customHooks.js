@@ -13,6 +13,17 @@ export function usePrevious(value) {
 }
 
 
+// useState combined with use previous.
+export function usePrevState(value){
+
+  const [state, setState] = useState(value);
+  const prevState = usePrevious(state);
+
+  return [prevState, state, setState];
+
+}
+
+
 // useState, however when the dependency value changes, reset state value to default state
 export function useDependentState(dependencyValue, defaultState){
 
