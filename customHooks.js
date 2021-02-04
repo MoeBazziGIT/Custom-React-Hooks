@@ -90,6 +90,27 @@ export function useMountCallBacks(componentDidMountCallBack, componentWillUnMoun
 }
 
 
+// short hand for setting up componentDidMount, componentWillUnMount and componentDidUpdate hooks with useEffect
+export function useComponentLifecycleMethods(componentDidMountHandler, componentWillUnMountHandler, componentDidUpdateHandler){
+
+  // component did mount
+  useEffect(() => {
+
+    componentDidMountHandler();
+
+    // component will unmount
+    return () => {
+      componentWillUnMountHandler();
+    }
+
+  }, []);
+
+  // component did update
+  useComponentDidUpdate(componentDidUpdateHandler);
+
+}
+
+
 // for using a state object, similar to the way setState works in class components.
 // Note* this is technicaly not *merging* the state values like the setState of class components does. We really
 //  are just *replacing* the old state object with the new one.
