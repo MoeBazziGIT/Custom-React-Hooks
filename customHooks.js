@@ -1,5 +1,71 @@
 import { useState, useEffect, useRef } from 'react';
 
+
+/* ------- LIFECYLCLE METHOD HOOKS ------- */
+
+
+// shorthand for the component did mount effect
+export function useComponentDidMount(componentDidMountHandler){
+
+  useEffect(componentDidMountHandler, []);
+
+}
+
+
+// shorthand for the component will unmount effect
+export function useComponentWillUnMount(componentWillUnMountHandler){
+
+  useEffect(() => {
+
+    return componentWillUnMountHandler;
+  }, []);
+
+}
+
+
+// short hand for setting up componentDidMount and componentWillUnMount hooks with useEffect
+export function useComponentMountLifecycleMethods(componentDidMountHandler, componentWillUnMountHandler){
+
+  // component did mount
+  useEffect(() => {
+
+    componentDidMountHandler();
+
+    // component will unmount
+    return componentWillUnMountHandler;
+
+  }, []);
+
+}
+
+
+// component did update effect. runs on subsequent renders
+export function useComponentDidUpdate(componentDidUpdateHandler){
+
+  // whether this is the first or a subsequent render
+  const isSubsequentRender = useRef(false);
+
+  useEffect(() => {
+    if(isSubsequentRender.current)
+      componentDidUpdateHandler();
+    else
+      isSubsequentRender.current = true;
+  });
+
+}
+
+
+// short hand for setting up componentDidMount, componentWillUnMount and componentDidUpdate hooks with useEffect
+export function useComponentLifecycleMethods(componentDidMountHandler, componentWillUnMountHandler, componentDidUpdateHandler){
+
+  // component did mount and component will unmount
+  useComponentMountLifecycleMethods(componentDidMountHandler, componentWillUnMountHandler);
+
+  // component did update
+  useComponentDidUpdate(componentDidUpdateHandler);
+
+}
+
 // get value from previous update to that value
 export function usePrevious(value) {
 
@@ -72,45 +138,6 @@ export function useAutoUmountingComponent(newComponent, dependancies){
 }
 
 
-// short hand for setting up componentDidMount and componentWillUnMount hooks with useEffect
-export function useComponentMountLifecycleMethods(componentDidMountHandler, componentWillUnMountHandler){
-
-  // component did mount
-  useEffect(() => {
-
-    componentDidMountHandler();
-
-    // component will unmount
-    return () => {
-      componentWillUnMountHandler();
-    }
-
-  }, []);
-
-}
-
-
-// short hand for setting up componentDidMount, componentWillUnMount and componentDidUpdate hooks with useEffect
-export function useComponentLifecycleMethods(componentDidMountHandler, componentWillUnMountHandler, componentDidUpdateHandler){
-
-  // component did mount
-  useEffect(() => {
-
-    componentDidMountHandler();
-
-    // component will unmount
-    return () => {
-      componentWillUnMountHandler();
-    }
-
-  }, []);
-
-  // component did update
-  useComponentDidUpdate(componentDidUpdateHandler);
-
-}
-
-
 // for using a state object, similar to the way setState works in class components.
 // Note* this is technicaly not *merging* the state values like the setState of class components does. We really
 //  are just *replacing* the old state object with the new one.
@@ -123,22 +150,6 @@ export function useMergeState(initialState) {
   );
 
   return [state, setMergedState];
-}
-
-
-// runs on subsequent renders
-export function useComponentDidUpdate(handler){
-
-  // whether this is the first or a subsequent render
-  const isSubsequentRender = useRef(false);
-
-  useEffect(() => {
-    if(isSubsequentRender.current)
-      handler();
-    else
-      isSubsequentRender.current = true;
-  });
-
 }
 
 
