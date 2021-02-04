@@ -88,3 +88,13 @@ export function useMountCallBacks(componentDidMountCallBack, componentWillUnMoun
   }, []);
 
 }
+
+
+// for using a state object, similar to the way setState works in class components. 
+function useMergeState(initialState) {
+  const [state, setState] = useState(initialState);
+  const setMergedState = newState =>
+    setState(prevState => Object.assign({}, prevState, newState)
+  );
+  return [state, setMergedState];
+}
