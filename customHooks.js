@@ -90,7 +90,9 @@ export function useMountCallBacks(componentDidMountCallBack, componentWillUnMoun
 }
 
 
-// for using a state object, similar to the way setState works in class components. 
+// for using a state object, similar to the way setState works in class components.
+// Note* this is technicaly not *merging* the state values like the setState of class components does. We really
+//  are just *replacing* the old state object with the new one.
 function useMergeState(initialState) {
   const [state, setState] = useState(initialState);
   const setMergedState = newState =>
