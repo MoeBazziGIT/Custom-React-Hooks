@@ -143,7 +143,7 @@ export function useComponentDidUpdate(handler){
 
 
 // calls the handler only when the dependancies have been updated (not via the intial render)
-export function useDependancyUpdated(handler, dependencies){
+export function useDependancyUpdated(handler, dependancies){
 
   // whether this is the first or a subsequent render
   const isSubsequentRender = useRef(false);
