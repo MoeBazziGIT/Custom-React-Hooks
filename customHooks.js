@@ -7,6 +7,7 @@ import { useState, useEffect, useRef } from 'react';
 // shorthand for the component did mount effect
 export function useComponentDidMount(componentDidMountHandler){
 
+  // calling useEffect with an empty dependancy array only gets called when component mounts
   useEffect(componentDidMountHandler, []);
 
 }
@@ -17,6 +18,7 @@ export function useComponentWillUnMount(componentWillUnMountHandler){
 
   useEffect(() => {
 
+    // component will unmount
     return componentWillUnMountHandler;
   }, []);
 
@@ -79,7 +81,7 @@ export function usePrevious(value) {
 }
 
 
-// useState combined with use previous.
+// useState combined with usePrevious.
 export function usePrevState(value){
 
   const [state, setState] = useState(value);
