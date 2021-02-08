@@ -155,8 +155,8 @@ export function useMergeState(initialState) {
 }
 
 
-// calls the handler only when the dependancies have been updated (not via the intial render)
-export function useDependancyUpdated(handler, dependancies){
+// calls the handler only when the values have been updated (not via the intial render)
+export function useValuesUpdated(handler, values){
 
   // whether this is the first or a subsequent render
   const isSubsequentRender = useRef(false);
@@ -166,6 +166,6 @@ export function useDependancyUpdated(handler, dependancies){
       handler();
     else
       isSubsequentRender.current = true;
-  }, dependancies);
+  }, values);
 
 }
