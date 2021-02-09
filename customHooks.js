@@ -68,6 +68,10 @@ export function useComponentLifecycleMethods(componentDidMountHandler, component
 
 }
 
+
+/* ------- STATE, PROPS AND VALUES ------- */
+
+
 // get value from previous update to that value
 export function usePrevious(value) {
 
@@ -90,6 +94,50 @@ export function usePrevState(value){
   return [prevState, state, setState];
 
 }
+
+
+// calls the handler only when the values have been updated (not via the intial render)
+export function useValuesUpdated(handler, values){
+
+  // whether this is the first or a subsequent render
+  const isSubsequentRender = useRef(false);
+
+  useEffect(() => {
+    if(isSubsequentRender.current)
+      handler();
+    else
+      isSubsequentRender.current = true;
+  }, values);
+
+}
+
+
+// calls the handler with the previous value's 'value' when the value has been updated
+export function useValueUpdatedWithPrevious(valueDidUpdateHandler, value){
+
+  const prevValue = usePrevious(value);
+
+  useValuesUpdated(() => valueDidUpdateHandler(prevValue), [value])
+
+}
+
+
+// for using a state object, similar to the way setState works in class components.
+// Note* this is technicaly not *merging* the state values like the setState of class components does. We really
+//  are just *replacing* the old state object with the new one.
+export function useMergeState(initialState) {
+
+  const [state, setState] = useState(initialState);
+
+  const setMergedState = newState =>
+    setState(prevState => Object.assign({}, prevState, newState)
+  );
+
+  return [state, setMergedState];
+}
+
+
+/* ------- EXPERIMENTAL ------- */
 
 
 // useState, however when the dependency value changes, reset state value to default state
@@ -136,36 +184,5 @@ export function useAutoUmountingComponent(newComponent, dependancies){
   }, [component])
 
   return component;
-
-}
-
-
-// for using a state object, similar to the way setState works in class components.
-// Note* this is technicaly not *merging* the state values like the setState of class components does. We really
-//  are just *replacing* the old state object with the new one.
-export function useMergeState(initialState) {
-
-  const [state, setState] = useState(initialState);
-
-  const setMergedState = newState =>
-    setState(prevState => Object.assign({}, prevState, newState)
-  );
-
-  return [state, setMergedState];
-}
-
-
-// calls the handler only when the values have been updated (not via the intial render)
-export function useValuesUpdated(handler, values){
-
-  // whether this is the first or a subsequent render
-  const isSubsequentRender = useRef(false);
-
-  useEffect(() => {
-    if(isSubsequentRender.current)
-      handler();
-    else
-      isSubsequentRender.current = true;
-  }, values);
 
 }
