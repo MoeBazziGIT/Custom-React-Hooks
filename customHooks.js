@@ -140,6 +140,8 @@ export function useMergeState(initialState) {
 /* ------- MISC ------- */
 
 
+// returns a listener for onMouseDown events for elements. Pass in callback functions for multiple mouse events
+// TODO: https://github.com/MoeBazziGIT/Custom-React-Hooks/issues/2
 export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, onMouseHoldCallback, onMouseHoldEndCallback, onDragCallback, onDragStartCallback, onDragEndCallback, options }) {
 
   // the maximum duration after a single click that qualifies a second click as a double click event
@@ -216,7 +218,6 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
   function onMouseDown(syntheticEvent){
     // prevent default for onDragstart since this custom hook is handling the implementation of drag events
     syntheticEvent.target.ondragstart = event => {
-      console.log("PREVENTING NATIVE ON DRAG START EVENT");
       event.preventDefault();
     };
 
