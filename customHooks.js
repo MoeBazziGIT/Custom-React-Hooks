@@ -198,7 +198,7 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
         // Single click
         if (state.clickCount === 1){
           document.removeEventListener('mousemove', onMouseMoveRef.current);
-          onSingleClickCallback();
+          onSingleClickCallback && onSingleClickCallback();
         }
         updateClickCount(0);
     }, doubleClickDuration);
@@ -207,7 +207,7 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
     //  is less than the value of doubleClickDuration which qualifies for a double click event
     if (state.clickCount === 2){
       updateClickCount(0);
-      onDoubleClickCallback();
+      onDoubleClickCallback && onDoubleClickCallback();
     }
 
     return () => clearTimeout(doubleClickTimerRef.current);
@@ -224,7 +224,7 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
     mouseDownTime.current = Date.now();
     mouseHoldTimerRef.current = setTimeout(() => {
       // trigger mouse down (ie hold) event
-      onMouseHoldCallback();
+      onMouseHoldCallback && onMouseHoldCallback();
     }, mouseHoldDuration);
 
     setState(prevState => {
@@ -240,7 +240,7 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
 
     let mouseUpTime = Date.now();
     if((mouseUpTime - mouseDownTime.current >= mouseHoldDuration) && mouseHoldTimerRef.current){ // this means that the onMouseDown (ie. hold) event just finished
-      onMouseHoldEndCallback();
+      onMouseHoldEndCallback && onMouseHoldEndCallback();
       setState(prevState => {
         return { ...prevState, isMouseDown: false };
       });
@@ -254,7 +254,7 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
 
     if(isDragged.current){
       isDragged.current = false;
-      onDragEndCallback();
+      onDragEndCallback && onDragEndCallback();
     }
 
     setState(prevState => {
@@ -286,19 +286,11 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
 
       if(!isDragged.current){
         isDragged.current = true;
-        onDragStartCallback(event);
+        onDragStartCallback && onDragStartCallback(event);
       }
 
       // trigger drag callback
-      onDragCallback(event);
-    }
-
-    // user moved mouse right after first click, meaning there is no intention of attempting a double click
-    if(state.clickCount === 1){
-      document.removeEventListener('mousemove', onMouseMoveRef.current);
-      document.removeEventListener('mouseup', onMouseUpRef.current);
-      updateClickCount(0);
-      onSingleClickCallback();
+      onDragCallback && onDragCallback(event);
     }
 
   }
