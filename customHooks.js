@@ -140,7 +140,7 @@ export function useMergeState(initialState) {
 /* ------- MISC ------- */
 
 
-export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, onMouseHoldCallback, onMouseHoldEndCallback, onDragCallback, onDragEndCallback, options }) {
+export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, onMouseHoldCallback, onMouseHoldEndCallback, onDragCallback, onDragStartCallback, onDragEndCallback, options }) {
 
   // the maximum duration after a single click that qualifies a second click as a double click event
   const doubleClickDuration = (options && options.doubleClickDuration) || 300; // default to 350
@@ -169,6 +169,7 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
   const mouseHoldTimerRef = useRef(null);
 
   const mouseDownTime = useRef(null);
+  const isDragged = useRef(false);
 
   useEffect(() => {
     if(state.isMouseDown){ // on mouse down
@@ -250,22 +251,20 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
       mouseHoldTimerRef.current = null;
     }
 
+    if(isDragged.current){
+      isDragged.current = false;
+      onDragEndCallback();
+    }
+
     setState(prevState => {
-      let clickCount = prevState.clickCount;
-      if(event.pageX === state.mouseDownPos.x && event.pageY === state.mouseDownPos.y){
-        // the mouse position hasnt changed since mouse down, so this qualifies for a single click ie. not a mouse drag
-        clickCount += 1;
-      }
-      else{
-        // since mouse position has changed sinced being pressed down, this means it was being dragged.
-        // TODO FIX: only one edge case thats very unlikely: if user dragged mouse then returned it to the same exact pixel position
-        //  of mouse down, then that would register as click event, not end drag event
-        onDragEndCallback();
-      }
+
+      // if mouse position hasnt changed sinced being pressed down, then this qualifies for a click
+      const isClicked = event.pageX === state.mouseDownPos.x && event.pageY === state.mouseDownPos.y;
+
       return {
         ...prevState,
         isMouseDown: false,
-        clickCount
+        clickCount: prevState.clickCount + isClicked
       };
     });
 
@@ -283,6 +282,11 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
       // cancel timer for onMouseDown (ie. hold) event
       clearTimeout(mouseHoldTimerRef.current);
       mouseHoldTimerRef.current = null;
+
+      if(!isDragged.current){
+        isDragged.current = true;
+        onDragStartCallback(event);
+      }
 
       // trigger drag callback
       onDragCallback(event);
