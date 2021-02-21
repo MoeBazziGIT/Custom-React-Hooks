@@ -112,9 +112,11 @@ export function useValuesUpdated(handler, values){
 }
 
 
-export function useValueUpdatedWithPrevious(valueDidUpdateHandler, value){
+// calls the handler with the previous value's 'value' when the value has been updated
+// if no withValue is is provided, then prevValue wil default to value
+export function useValueUpdatedWithPrevious(valueDidUpdateHandler, value, withValue){
 
-  const prevValue = usePrevious(value);
+  const prevValue = usePrevious(withValue || value);
 
   useValuesUpdated(() => valueDidUpdateHandler(prevValue), [value])
 
