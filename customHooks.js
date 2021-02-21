@@ -112,7 +112,6 @@ export function useValuesUpdated(handler, values){
 }
 
 
-// calls the handler with the previous value's 'value' when the value has been updated
 export function useValueUpdatedWithPrevious(valueDidUpdateHandler, value){
 
   const prevValue = usePrevious(value);
@@ -156,6 +155,12 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
   // allow trigger a drag event if a held event has occurred
   const onlyDragIfHeld = (options && options.onlyDragIfHeld) || false; // default to false // TODO: implement this
 
+  // if the mosue down position does not equal the mouse up position, then that does not qualify for a mouse click
+  // This will differentiate between a drag end and click event
+  const preventClickIfPosChange =
+    (options && options.preventClickIfPosChange) ||
+    (onDragEndCallback && true); // default to true if the on drag end callback is handled
+
   // state
   const [state, setState] = useState({
     isMouseDown: false,
@@ -194,14 +199,21 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
     // update closure of mousemove listener since it relies on 'click' state
     document.removeEventListener('mousemove', onMouseMoveRef.current);
 
-    doubleClickTimerRef.current = setTimeout(() => {
-        // Single click
-        if (state.clickCount === 1){
-          document.removeEventListener('mousemove', onMouseMoveRef.current);
-          onSingleClickCallback && onSingleClickCallback();
-        }
-        updateClickCount(0);
-    }, doubleClickDuration);
+    // only wait for the double click of a double click event is wanted, otherwise just trigger a single click event directly
+    if(onDoubleClickCallback){
+      doubleClickTimerRef.current = setTimeout(() => {
+          // single click event
+          if (state.clickCount === 1){
+            document.removeEventListener('mousemove', onMouseMoveRef.current);
+            onSingleClickCallback && onSingleClickCallback();
+          }
+          updateClickCount(0);
+      }, doubleClickDuration);
+    }
+    else{ // single click event
+      onSingleClickCallback && onSingleClickCallback();
+      updateClickCount(0);
+    }
 
     // the duration between this click and the previous one
     //  is less than the value of doubleClickDuration which qualifies for a double click event
@@ -241,9 +253,7 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
     let mouseUpTime = Date.now();
     if((mouseUpTime - mouseDownTime.current >= mouseHoldDuration) && mouseHoldTimerRef.current){ // this means that the onMouseDown (ie. hold) event just finished
       onMouseHoldEndCallback && onMouseHoldEndCallback();
-      setState(prevState => {
-        return { ...prevState, isMouseDown: false };
-      });
+      setState(prevState => ({ ...prevState, isMouseDown: false }));
       return;
     }
     else{
@@ -259,8 +269,11 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
 
     setState(prevState => {
 
-      // if mouse position hasnt changed sinced being pressed down, then this qualifies for a click
-      const isClicked = event.pageX === state.mouseDownPos.x && event.pageY === state.mouseDownPos.y;
+      // if options.preventClickIfPosChange flag is set, then we must check if the position of the
+      //  mouse has changed. This will differentiate between a drag end and click event
+      let isClicked = true;
+      if(preventClickIfPosChange)
+        isClicked = event.pageX === state.mouseDownPos.x && event.pageY === state.mouseDownPos.y;
 
       return {
         ...prevState,
