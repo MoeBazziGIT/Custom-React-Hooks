@@ -30,7 +30,7 @@ export function useComponentWillMount(componentWillMountHandler){
 
     // component will mount before first render
     if(!hasRendered.current)
-      componentWillMountHandler();
+      componentWillMountHandler && componentWillMountHandler();
 
     hasRendered.current = true;
 }
