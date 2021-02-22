@@ -161,7 +161,7 @@ export function useMergeState(initialState) {
 export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, onMouseHoldCallback, onMouseHoldEndCallback, onDragCallback, onDragStartCallback, onDragEndCallback, options }) {
 
   // the maximum duration after a single click that qualifies a second click as a double click event
-  const doubleClickDuration = (options && options.doubleClickDuration) || 300; // default to 350
+  const doubleClickDuration = (options && options.doubleClickDuration) || 300; // default to 300
 
   // the minimum duration that mouse must be held down in order to trigger a mouse down (ie hold) event
   const mouseHoldDuration = (options && options.mouseHoldDuration) || 750; // default to 750
@@ -227,7 +227,7 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
           updateClickCount(0);
       }, doubleClickDuration);
     }
-    else{ // single click event
+    else if(state.clickCount === 1){ // single click event
       onSingleClickCallback && onSingleClickCallback();
       updateClickCount(0);
     }
