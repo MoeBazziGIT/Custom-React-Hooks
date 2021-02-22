@@ -24,19 +24,34 @@ export function useComponentWillUnMount(componentWillUnMountHandler){
 
 }
 
+// component will mount
+export function useComponentWillMount(componentWillMountHandler){
+    const hasRendered = useRef(false);
 
-// short hand for setting up componentDidMount and componentWillUnMount hooks with useEffect
-export function useComponentMountLifecycleMethods(componentDidMountHandler, componentWillUnMountHandler){
+    // component will mount before first render
+    if(!hasRendered.current)
+      componentWillMountHandler();
+
+    hasRendered.current = true;
+}
+
+
+// short hand for setting up componentDidMount, componentWillUnMount, componentWillMountHandler hooks with useEffect
+export function useComponentMountLifecycleMethods(componentDidMountHandler, componentWillUnMountHandler, componentWillMountHandler){
 
   // component did mount
   useEffect(() => {
 
-    componentDidMountHandler();
+    componentDidMountHandler && componentDidMountHandler();
 
     // component will unmount
-    return componentWillUnMountHandler;
+    if(componentWillUnMountHandler)
+      return componentWillUnMountHandler;
 
   }, []);
+
+
+  useComponentWillMount(componentWillMountHandler);
 
 }
 
@@ -57,11 +72,11 @@ export function useComponentDidUpdate(componentDidUpdateHandler){
 }
 
 
-// short hand for setting up componentDidMount, componentWillUnMount and componentDidUpdate hooks with useEffect
-export function useComponentLifecycleMethods(componentDidMountHandler, componentWillUnMountHandler, componentDidUpdateHandler){
+// short hand for setting up componentDidMount, componentWillUnMount, componentWillMount and componentDidUpdate hooks with useEffect
+export function useComponentLifecycleMethods(componentDidMountHandler, componentWillUnMountHandler, componentWillMountHandler, componentDidUpdateHandler){
 
-  // component did mount and component will unmount
-  useComponentMountLifecycleMethods(componentDidMountHandler, componentWillUnMountHandler);
+  // component did mount, component will unmount and component will mount
+  useComponentMountLifecycleMethods(componentDidMountHandler, componentWillUnMountHandler, componentWillMountHandler);
 
   // component did update
   useComponentDidUpdate(componentDidUpdateHandler);
