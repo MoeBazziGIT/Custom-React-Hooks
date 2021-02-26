@@ -339,6 +339,35 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
 /* ------- EXPERIMENTAL ------- */
 
 
+export function useStateWithUpdateCallback(stateValue, options){
+
+  const skipInititalRenderUpdate = (options && options.skipInititalRenderUpdate) || false; // default to false
+
+  const initState = { value: stateValue, callback: null };
+  let [state, setState] = useState(initState);
+
+  // whether this is the first or a subsequent render
+  const isSubsequentRender = useRef(false);
+
+  useEffect(() => {
+    if(state.callback){
+      if(skipInititalRenderUpdate){
+        if(isSubsequentRender.current)
+          state.callback(stateValue);
+        else
+          isSubsequentRender.current = true;
+      }
+      else{
+        state.callback(stateValue);
+      }
+    }
+  }, [state]);
+
+  return [state, setState];
+
+}
+
+
 // prevents new function closures from using stale state values
 export function useNonStaleState(initState){
 
