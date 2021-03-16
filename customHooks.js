@@ -158,13 +158,16 @@ export function useMergeState(initialState) {
 
 // returns a listener for onMouseDown events for elements. Pass in callback functions for multiple mouse events
 // TODO: https://github.com/MoeBazziGIT/Custom-React-Hooks/issues/2
-export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, onMouseHoldCallback, onMouseHoldEndCallback, onDragCallback, onDragStartCallback, onDragEndCallback, options }) {
+export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, onMouseHoldCallback, onMouseHoldEndCallback, onDragCallback, onDragStartCallback, onDragEndCallback, onDragHoldCallback, onDragHoldEndCallback, options }) {
 
   // the maximum duration after a single click that qualifies a second click as a double click event
   const doubleClickDuration = (options && options.doubleClickDuration) || 300; // default to 300
 
   // the minimum duration that mouse must be held down in order to trigger a mouse down (ie hold) event
   const mouseHoldDuration = (options && options.mouseHoldDuration) || 750; // default to 750
+
+  // the minimum duration that mouse must be held down in same position while dragging in order to trigger a drag hold event
+  const dragHoldDuration = (options && options.dragHoldDuration) || 750; // default to 750
 
   // wether or not a drag event is to be prevented after a hold event has occured
   const preventDragIfHeld = (options && options.preventDragIfHeld) || false; // default to false // TODO: implement this
@@ -191,9 +194,11 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
   const onMouseUpRef = useRef(null);
   const doubleClickTimerRef = useRef(null);
   const mouseHoldTimerRef = useRef(null);
+  const dragHoldTimerRef = useRef(null);
 
   const mouseDownTime = useRef(null);
   const isDragged = useRef(false);
+  const isDragHeld = useRef(false);
 
   useEffect(() => {
     if(state.isMouseDown){ // on mouse down
@@ -284,6 +289,14 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
       onDragEndCallback && onDragEndCallback();
     }
 
+    if(isDragHeld.current){
+      isDragHeld.current = false;
+      onDragHoldEndCallback && onDragHoldEndCallback();
+    }
+
+    // cancel timer for onDragHold event
+    clearTimeout(dragHoldTimerRef.current);
+
     setState(prevState => {
 
       // if options.preventClickIfPosChange flag is set, then we must check if the position of the
@@ -314,6 +327,23 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
       clearTimeout(mouseHoldTimerRef.current);
       mouseHoldTimerRef.current = null;
 
+      if(onDragHoldCallback){
+        if(isDragHeld.current){
+          isDragHeld.current = false;
+          onDragHoldEndCallback && onDragHoldEndCallback();
+        }
+        else{
+          // cancel timer for onDragHold event
+          clearTimeout(dragHoldTimerRef.current);
+
+          // set new timer
+          dragHoldTimerRef.current = setTimeout(function dragHoldTimeout(){
+            onDragHoldCallback();
+            isDragHeld.current = true;
+          }, dragHoldDuration);
+        }
+      }
+
       if(!isDragged.current){
         isDragged.current = true;
         onDragStartCallback && onDragStartCallback(event);
@@ -337,35 +367,6 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
 
 
 /* ------- EXPERIMENTAL ------- */
-
-
-export function useStateWithUpdateCallback(stateValue, options){
-
-  const skipInititalRenderUpdate = (options && options.skipInititalRenderUpdate) || false; // default to false
-
-  const initState = { value: stateValue, callback: null };
-  let [state, setState] = useState(initState);
-
-  // whether this is the first or a subsequent render
-  const isSubsequentRender = useRef(false);
-
-  useEffect(() => {
-    if(state.callback){
-      if(skipInititalRenderUpdate){
-        if(isSubsequentRender.current)
-          state.callback(stateValue);
-        else
-          isSubsequentRender.current = true;
-      }
-      else{
-        state.callback(stateValue);
-      }
-    }
-  }, [state]);
-
-  return [state, setState];
-
-}
 
 
 // prevents new function closures from using stale state values
