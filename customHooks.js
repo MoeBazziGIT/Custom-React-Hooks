@@ -186,6 +186,7 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
     isMouseDown: false,
     mouseDownPos: null, // the (x,y) position of where the mouse was 'downed'
     clickCount: 0,
+    mouseUpEvent: null, // the mouseup event that triggered a click count increment (used to pass the event to the single and double click event handlers)
   });
 
   // refs to event listeners. we must contain the
@@ -227,13 +228,13 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
           // single click event
           if (state.clickCount === 1){
             document.removeEventListener('mousemove', onMouseMoveRef.current);
-            onSingleClickCallback && onSingleClickCallback();
+            onSingleClickCallback && onSingleClickCallback(state.mouseUpEvent);
           }
           updateClickCount(0);
       }, doubleClickDuration);
     }
     else if(state.clickCount === 1){ // single click event
-      onSingleClickCallback && onSingleClickCallback();
+      onSingleClickCallback && onSingleClickCallback(state.mouseUpEvent);
       updateClickCount(0);
     }
 
@@ -241,7 +242,7 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
     //  is less than the value of doubleClickDuration which qualifies for a double click event
     if (state.clickCount === 2){
       updateClickCount(0);
-      onDoubleClickCallback && onDoubleClickCallback();
+      onDoubleClickCallback && onDoubleClickCallback(state.mouseUpEvent);
     }
 
     return () => clearTimeout(doubleClickTimerRef.current);
@@ -249,20 +250,20 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
   }, [state.clickCount]);
 
 
-  function onMouseDown(syntheticEvent){
+  function onMouseDown(event){
     // prevent default for onDragstart since this custom hook is handling the implementation of drag events
-    syntheticEvent.target.ondragstart = event => {
+    event.target.ondragstart = event => {
       event.preventDefault();
     };
 
     mouseDownTime.current = Date.now();
     mouseHoldTimerRef.current = setTimeout(() => {
       // trigger mouse down (ie hold) event
-      onMouseHoldCallback && onMouseHoldCallback();
+      onMouseHoldCallback && onMouseHoldCallback(event);
     }, mouseHoldDuration);
 
     setState(prevState => {
-      return { ...prevState, isMouseDown: true, mouseDownPos: { x: syntheticEvent.pageX, y: syntheticEvent.pageY } };
+      return { ...prevState, isMouseDown: true, mouseDownPos: { x: event.pageX, y: event.pageY } };
     });
 
   }
@@ -274,7 +275,7 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
 
     let mouseUpTime = Date.now();
     if((mouseUpTime - mouseDownTime.current >= mouseHoldDuration) && mouseHoldTimerRef.current){ // this means that the onMouseDown (ie. hold) event just finished
-      onMouseHoldEndCallback && onMouseHoldEndCallback();
+      onMouseHoldEndCallback && onMouseHoldEndCallback(event);
       setState(prevState => ({ ...prevState, isMouseDown: false }));
       return;
     }
@@ -286,12 +287,12 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
 
     if(isDragged.current){
       isDragged.current = false;
-      onDragEndCallback && onDragEndCallback();
+      onDragEndCallback && onDragEndCallback(event);
     }
 
     if(isDragHeld.current){
       isDragHeld.current = false;
-      onDragHoldEndCallback && onDragHoldEndCallback();
+      onDragHoldEndCallback && onDragHoldEndCallback(event);
     }
 
     // cancel timer for onDragHold event
@@ -305,10 +306,15 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
       if(preventClickIfPosChange)
         isClicked = event.pageX === state.mouseDownPos.x && event.pageY === state.mouseDownPos.y;
 
+      let mouseUpEvent = null;
+      if(isClicked)
+        mouseUpEvent = event;
+
       return {
         ...prevState,
         isMouseDown: false,
-        clickCount: prevState.clickCount + isClicked
+        clickCount: prevState.clickCount + isClicked,
+        mouseUpEvent
       };
     });
 
@@ -330,7 +336,7 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
       if(onDragHoldCallback){
         if(isDragHeld.current){
           isDragHeld.current = false;
-          onDragHoldEndCallback && onDragHoldEndCallback();
+          onDragHoldEndCallback && onDragHoldEndCallback(event);
         }
         else{
           // cancel timer for onDragHold event
@@ -338,7 +344,7 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
 
           // set new timer
           dragHoldTimerRef.current = setTimeout(function dragHoldTimeout(){
-            onDragHoldCallback();
+            onDragHoldCallback(event);
             isDragHeld.current = true;
           }, dragHoldDuration);
         }
@@ -362,7 +368,7 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
     });
   }
 
-  return (syntheticEvent) => onMouseDown(syntheticEvent);
+  return (event) => onMouseDown(event);
 }
 
 
