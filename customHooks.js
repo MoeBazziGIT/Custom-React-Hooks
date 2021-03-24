@@ -156,25 +156,39 @@ export function useMergeState(initialState) {
 /* ------- MISC ------- */
 
 
-// returns a listener for onMouseDown events for elements. Pass in callback functions for multiple mouse events
-export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, onMouseHoldCallback, onMouseHoldEndCallback, onDragCallback, onDragStartCallback, onDragEndCallback, onDragHoldCallback, onDragHoldEndCallback, onMouseDownCallback, onMouseUpCallback, options }) {
+// provides mouse/touch events with customization such as dragging, double click, hold etc.
+export function useMouseEvents(eventCallbacks, domTargetRef, config){
+
+  const {
+    onSingleClickCallback,
+    onDoubleClickCallback,
+    onMouseHoldCallback,
+    onMouseHoldEndCallback,
+    onDragCallback,
+    onDragStartCallback,
+    onDragEndCallback,
+    onDragHoldCallback,
+    onDragHoldEndCallback,
+    onMouseDownCallback,
+    onMouseUpCallback
+  } = eventCallbacks;
 
   // the maximum duration after a single click that qualifies a second click as a double click event
-  const doubleClickDuration = (options && options.doubleClickDuration) || 250; // default to 250
+  const doubleClickDuration = (config && config.doubleClickDuration) || 250; // default to 250
 
   // the minimum duration that mouse must be held down in order to trigger a mouse down (ie hold) event
-  const mouseHoldDuration = (options && options.mouseHoldDuration) || 750; // default to 750
+  const mouseHoldDuration = (config && config.mouseHoldDuration) || 750; // default to 750
 
   // the minimum duration that mouse must be held down in same position while dragging in order to trigger a drag hold event
-  const dragHoldDuration = (options && options.dragHoldDuration) || 750; // default to 750
+  const dragHoldDuration = (config && config.dragHoldDuration) || 750; // default to 750
 
   // wether or not a drag event is to be prevented after a hold event has occured
-  const preventDragIfHeld = (options && options.preventDragIfHeld) || false; // default to false
+  const preventDragIfHeld = (config && config.preventDragIfHeld) || false; // default to false
 
   // if the mouse down position does not equal the mouse up position, then that does not qualify for a mouse click
   // This will help differentiate between a drag end and click event
   const preventClickIfPosChange =
-    (options && options.preventClickIfPosChange) ||
+    (config && config.preventClickIfPosChange) ||
     (onDragEndCallback && true); // default to true if the on drag end callback is handled
 
   const [state, setState] = useState({
@@ -212,8 +226,24 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
   const mouseHoldTimeoutRef = useRef(null);
   const dragHoldTimeoutRef = useRef(null);
 
+  // the event names depending on wether they are mouse or touch events ie. mousemove for mouse and touchmove for touch
+  const eventTypes = useRef(null);
+
 
   /* SIDE EFFECT HANDLERS */
+
+
+  useComponentDidMount(() => {
+
+    // bind the 'down' event handler with the target
+    if(domTargetRef){
+      domTargetRef.current.onmousedown = onMouseDown;
+      domTargetRef.current.ontouchstart = onMouseDown;
+    }
+    else{
+      console.error("useMouseEvents requires a dom target value as the second argument");
+    }
+  });
 
 
   // isDown updated
@@ -222,32 +252,22 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
 
       const { isDown, nativeEvent, posX, posY, time } = state.mouseDown; // if isDown, then event is a mousedown event object, otherwise it is a mouseup event object
       if(isDown){ // mouse down event
+        // console.log("MOUSE DOWN");
         onMouseDownCallback && onMouseDownCallback(nativeEvent);
 
-        document.addEventListener("mousemove", onMouseMoveRef.current);
-        document.addEventListener("mouseup", onMouseUpRef.current);
+        document.addEventListener(eventTypes.current.move, onMouseMoveRef.current);
+        document.addEventListener(eventTypes.current.up, onMouseUpRef.current);
 
         mouseHoldTimeoutRef.current = setTimeout(() => {
           setState(prevState => ({ ...prevState, mouseHold: { isHeld: true, nativeEvent } }))
         }, mouseHoldDuration);
       }
       else{ // mouse up event
+        // console.log("MOUSE UP");
         onMouseUpCallback && onMouseUpCallback(nativeEvent);
 
-        let isClicked = null;
-
-        // if mouse is held, then dont register a click event
-        if(state.mouseHold.isHeld){
-          isClicked = false;
-        }
-        else{
-          // if preventClickIfPosChange flag is set, then we must check if the position of the
-          //  mouse has changed. This will differentiate between a drag end and click event
-          if(preventClickIfPosChange)
-            isClicked = posX === prevMouseDown.posX && posY === prevMouseDown.posY;
-          else
-            isClicked = true;
-        }
+        // if mouse is held or dragged, then dont register a click event
+        let isClicked = !state.mouseHold.isHeld && !state.mouseDrag.isDragged;
 
         setState(prevState => ({
           ...prevState,
@@ -260,8 +280,8 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
           click: { count: prevState.click.count + isClicked, nativeEvent, time },
         }));
 
-        document.removeEventListener("mouseup", onMouseUpRef.current);
-        document.removeEventListener("mousemove", onMouseMoveRef.current);
+        document.removeEventListener(eventTypes.current.move, onMouseMoveRef.current);
+        document.removeEventListener(eventTypes.current.up, onMouseUpRef.current);
       }
     },
     state.mouseDown.isDown,
@@ -282,11 +302,13 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
         case 1:
           if(onDoubleClickCallback){ // if there is no double click callback provided, then no need to settimout to wait
             doubleClickTimoutRef.current = setTimeout(() => {
+              // console.log("SINGLE");
               onSingleClickCallback && onSingleClickCallback(nativeEvent);
               setState(prevState => ({ ...prevState, click: { count: 0, time: null, nativeEvent: null } }));
             }, doubleClickDuration)
           }
           else{
+            // console.log("SINGLE");
             onSingleClickCallback && onSingleClickCallback(nativeEvent);
             setState(prevState => ({ ...prevState, click: { count: 0, time: null, nativeEvent: null } }));
           }
@@ -294,6 +316,7 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
         case 2:
           if(time - prevClick.time <= doubleClickDuration){
             clearTimeout(doubleClickTimoutRef.current);
+            // console.log("DOUBLE");
             onDoubleClickCallback && onDoubleClickCallback(nativeEvent);
             setState(prevState => ({ ...prevState, click: { count: 0, time: null, nativeEvent: null } }));
           }
@@ -314,11 +337,13 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
     const { isHeld, nativeEvent } = state.mouseHold;
 
     if(isHeld){
+      // console.log("MOUSE HOLD");
       onMouseHoldCallback && onMouseHoldCallback(nativeEvent);
-      if(preventDragIfHeld)
-        document.removeEventListener("mousemove", onMouseMoveRef.current);
+      if(preventDragIfHeld) // dont listen to move events anymore, so that drag events dont get triggered
+        document.removeEventListener(eventTypes.current.move, onMouseMoveRef.current);
     }
     else{
+      // console.log("MOUSE HOLD END");
       onMouseHoldEndCallback && onMouseHoldEndCallback(nativeEvent);
     }
   }, [state.mouseHold.isHeld]);
@@ -331,9 +356,11 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
     if(isDragged){
       // cancel the potential mouse hold event
       clearTimeout(mouseHoldTimeoutRef.current);
+      // console.log("DRAG START");
       onDragStartCallback && onDragStartCallback(nativeEvent);
     }
     else{
+      // console.log("DRAG END");
       onDragEndCallback && onDragEndCallback(nativeEvent);
     }
 
@@ -383,23 +410,51 @@ export function useMouseEvents({ onSingleClickCallback, onDoubleClickCallback, o
       event.preventDefault();
     };
 
+    switch (event.type) {
+      case "mousedown":
+        eventTypes.current = {
+          move: "mousemove",
+          up: "mouseup"
+        }; // need to listen to mouse events
+        break;
+      case "touchstart":
+        eventTypes.current = {
+          move: "touchmove",
+          up: "touchend"
+        }; // need to listen to touch events
+        /* "the browser may fire both touch events and mouse events in response to the same user input...if an application does not
+           want mouse events fired on a specific touch target element, the element's touch event handlers should call preventDefault()
+           and no additional mouse events will be dispatched"
+           - https://developer.mozilla.org/en-US/docs/Web/API/Touch_events/Supporting_both_TouchEvent_and_MouseEvent#event_firing
+        */
+        event.preventDefault();
+        event = event.changedTouches[0]; // reassign to the touch event
+        break;
+    }
+
     setState(prevState => ({ ...prevState, mouseDown: { isDown: true, nativeEvent: event, posX: event.pageX, posY: event.pageY, time: new Date() } }));
   }
 
 
   function onMouseUp(event){
     event.preventDefault();
+    if(eventTypes.current.up === "touchend")
+      event = event.changedTouches[0]; // reassign to the touch event
 
     setState(prevState => ({ ...prevState, mouseDown: { isDown: false, nativeEvent: event, posX: event.pageX, posY: event.pageY, time: new Date() } }));
   }
 
 
   function onMouseMove(event){
+    event.preventDefault();
+    if(eventTypes.current.move === "touchmove")
+      event = event.changedTouches[0]; // reassign to the touch event
+
     setState(prevState => ({ ...prevState, mouseDrag: { isDragged: true, nativeEvent: event, dragX: event.clientX, dragY: event.clientY } }));
   }
 
 
-  return onMouseDown;
+  return { isDragged: state.mouseDrag.isDragged, isHeld: state.mouseHold.isHeld, isDragHeld: state.mouseDragHold.isDragHeld };
 
 }
 
