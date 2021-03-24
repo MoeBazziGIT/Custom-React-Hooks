@@ -157,7 +157,7 @@ export function useMergeState(initialState) {
 
 
 // provides mouse/touch events with customization such as dragging, double click, hold etc.
-export function useMouseEvents(eventCallbacks, domTargetRef, config){
+export function useMouseEvents(eventCallbacks, targets, config){
 
   const {
     onSingleClickCallback,
@@ -230,15 +230,42 @@ export function useMouseEvents(eventCallbacks, domTargetRef, config){
   const eventTypes = useRef(null);
 
 
+  /* HELPER/MISC */
+
+
+  // add the 'down' event handler to the target
+  function addEventListeners(target){
+
+    if(typeof target === "string"){ // this is a string of the id of the target element
+      target = document.getElementById(target);
+    }
+    else{ // target is react ref
+      target = target.current;
+    }
+
+    if(target){
+      target.onmousedown = onMouseDown;
+      target.ontouchstart = onMouseDown;
+    }
+    // else{
+    //   console.warn("useMouseEvents: Could not find target to attach event listeners. Please make sure that the target is a React ref or an id string of the target element");
+    // }
+
+  }
+
+
   /* SIDE EFFECT HANDLERS */
 
 
-  useComponentDidMount(() => {
+  useEffect(() => {
 
-    // bind the 'down' event handler with the target
-    if(domTargetRef){
-      domTargetRef.current.onmousedown = onMouseDown;
-      domTargetRef.current.ontouchstart = onMouseDown;
+    if(targets){
+      if(!Array.isArray(targets))
+        targets = [targets];
+
+      targets.forEach(target => {
+        addEventListeners(target);
+      });
     }
     else{
       console.error("useMouseEvents requires a dom target value as the second argument");
