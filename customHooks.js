@@ -220,12 +220,18 @@ export function useMouseEvents(eventCallbacks, targets, config){
   /* refs to event handlers in order to remove the same event listener through different renders */
   const onMouseMoveRef = useRef(onMouseMove);
   const onMouseUpRef = useRef(onMouseUp);
+  const onMouseLeaveRef = useRef(onMouseLeave);
+
   const doubleClickTimoutRef = useRef(null);
   const mouseHoldTimeoutRef = useRef(null);
   const dragHoldTimeoutRef = useRef(null);
 
   // the event names depending on wether they are mouse or touch events ie. mousemove for mouse and touchmove for touch
   const eventTypes = useRef(null);
+
+  // wether or not to listen to the native move events.
+  //  If any of the drag events are registered then it is self explanatory to listen to move events.
+  const listenForMoveEvents = onDragStartCallback || onDragCallback || onDragEndCallback || onDragHoldCallback || onDragHoldEndCallback;
 
 
   /* SIDE EFFECT HANDLERS */
@@ -256,19 +262,26 @@ export function useMouseEvents(eventCallbacks, targets, config){
         // console.log("MOUSE DOWN");
         onMouseDownCallback && onMouseDownCallback(nativeEvent);
 
-        document.addEventListener(eventTypes.current.move, onMouseMoveRef.current);
+        listenForMoveEvents && document.addEventListener(eventTypes.current.move, onMouseMoveRef.current);
         document.addEventListener(eventTypes.current.up, onMouseUpRef.current);
 
-        mouseHoldTimeoutRef.current = setTimeout(() => {
-          setState(prevState => ({ ...prevState, mouseHold: { isHeld: true, nativeEvent } }))
-        }, mouseHoldDuration);
+        if(onMouseHoldCallback){
+          nativeEvent.target.addEventListener("mouseleave", onMouseLeaveRef.current);
+          mouseHoldTimeoutRef.current = setTimeout(() => {
+            nativeEvent.target.removeEventListener("mouseleave", onMouseLeaveRef.current);
+            setState(prevState => ({ ...prevState, mouseHold: { isHeld: true, nativeEvent } }));
+          }, mouseHoldDuration);
+        }
       }
       else{ // mouse up event
         // console.log("MOUSE UP");
         onMouseUpCallback && onMouseUpCallback(nativeEvent);
 
+        // did the mouse come up on the same target that the mouse went down on
+        const clickedSameTarget = prevMouseDown.nativeEvent.target === nativeEvent.target;
+
         // if mouse is held or dragged, then dont register a click event
-        let isClicked = !state.mouseHold.isHeld && !state.mouseDrag.isDragged;
+        const isClicked = !state.mouseHold.isHeld && !state.mouseDrag.isDragged && clickedSameTarget;
 
         setState(prevState => ({
           ...prevState,
@@ -443,7 +456,7 @@ export function useMouseEvents(eventCallbacks, targets, config){
 
   function onMouseUp(event){
     event.preventDefault();
-    eventTypes.up === "touchend" && mergeTouchEventProperties(event);
+    eventTypes.current.up === "touchend" && mergeTouchEventProperties(event);
 
     setState(prevState => ({ ...prevState, mouseDown: { isDown: false, nativeEvent: event, time: new Date() } }));
   }
@@ -451,8 +464,18 @@ export function useMouseEvents(eventCallbacks, targets, config){
 
   function onMouseMove(event){
     event.preventDefault();
+    eventTypes.current.move === "touchmove" && mergeTouchEventProperties(event);
 
     setState(prevState => ({ ...prevState, mouseDrag: { isDragged: true, nativeEvent: event, dragX: event.clientX, dragY: event.clientY } }));
+  }
+
+
+  function onMouseLeave(event){
+
+    // if a mouse leaves the target of the on mouse down event, then cancel hold timeout
+    clearTimeout(mouseHoldTimeoutRef.current);
+    event.target.removeEventListener("mouseleave", onMouseLeaveRef.current);
+
   }
 
 
@@ -483,8 +506,6 @@ export function useMouseEvents(eventCallbacks, targets, config){
   // attach the properties of the touch event to the greater event object. This is so that mouse and touch event objects have
   //  similar properties such as clientX, pageX, screenX etc.
   function mergeTouchEventProperties(eventToMerge){
-
-    console.log(eventToMerge);
 
     const touch = eventToMerge.changedTouches[0];
 
