@@ -443,7 +443,7 @@ export function useMouseEvents(eventCallbacks, targets, config){
 
   function onMouseUp(event){
     event.preventDefault();
-    mergeTouchEventProperties(event);
+    eventTypes.up === "touchend" && mergeTouchEventProperties(event);
 
     setState(prevState => ({ ...prevState, mouseDown: { isDown: false, nativeEvent: event, time: new Date() } }));
   }
@@ -451,7 +451,6 @@ export function useMouseEvents(eventCallbacks, targets, config){
 
   function onMouseMove(event){
     event.preventDefault();
-    mergeTouchEventProperties(event);
 
     setState(prevState => ({ ...prevState, mouseDrag: { isDragged: true, nativeEvent: event, dragX: event.clientX, dragY: event.clientY } }));
   }
@@ -484,6 +483,8 @@ export function useMouseEvents(eventCallbacks, targets, config){
   // attach the properties of the touch event to the greater event object. This is so that mouse and touch event objects have
   //  similar properties such as clientX, pageX, screenX etc.
   function mergeTouchEventProperties(eventToMerge){
+
+    console.log(eventToMerge);
 
     const touch = eventToMerge.changedTouches[0];
 
