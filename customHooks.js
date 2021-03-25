@@ -195,8 +195,6 @@ export function useMouseEvents(eventCallbacks, targets, config){
     mouseDown: {
       isDown: false,
       nativeEvent: null,
-      posX: null,
-      posY: null,
       time: null,
     },
     mouseHold: {
@@ -230,30 +228,6 @@ export function useMouseEvents(eventCallbacks, targets, config){
   const eventTypes = useRef(null);
 
 
-  /* HELPER/MISC */
-
-
-  // add the 'down' event handler to the target
-  function addEventListeners(target){
-
-    if(typeof target === "string"){ // this is a string of the id of the target element
-      target = document.getElementById(target);
-    }
-    else{ // target is react ref
-      target = target.current;
-    }
-
-    if(target){
-      target.onmousedown = onMouseDown;
-      target.ontouchstart = onMouseDown;
-    }
-    // else{
-    //   console.warn("useMouseEvents: Could not find target to attach event listeners. Please make sure that the target is a React ref or an id string of the target element");
-    // }
-
-  }
-
-
   /* SIDE EFFECT HANDLERS */
 
 
@@ -277,7 +251,7 @@ export function useMouseEvents(eventCallbacks, targets, config){
   useValueUpdatedWithPrevious(
     prevMouseDown => {
 
-      const { isDown, nativeEvent, posX, posY, time } = state.mouseDown; // if isDown, then event is a mousedown event object, otherwise it is a mouseup event object
+      const { isDown, nativeEvent, time } = state.mouseDown; // if isDown, then event is a mousedown event object, otherwise it is a mouseup event object
       if(isDown){ // mouse down event
         // console.log("MOUSE DOWN");
         onMouseDownCallback && onMouseDownCallback(nativeEvent);
@@ -449,35 +423,79 @@ export function useMouseEvents(eventCallbacks, targets, config){
           move: "touchmove",
           up: "touchend"
         }; // need to listen to touch events
+
         /* "the browser may fire both touch events and mouse events in response to the same user input...if an application does not
            want mouse events fired on a specific touch target element, the element's touch event handlers should call preventDefault()
            and no additional mouse events will be dispatched"
            - https://developer.mozilla.org/en-US/docs/Web/API/Touch_events/Supporting_both_TouchEvent_and_MouseEvent#event_firing
-        */
-        event.preventDefault();
-        event = event.changedTouches[0]; // reassign to the touch event
+        */ event.preventDefault();
+
+        if(event.touches.length > 1)
+          return
+
+        mergeTouchEventProperties(event);
         break;
     }
 
-    setState(prevState => ({ ...prevState, mouseDown: { isDown: true, nativeEvent: event, posX: event.pageX, posY: event.pageY, time: new Date() } }));
+    setState(prevState => ({ ...prevState, mouseDown: { isDown: true, nativeEvent: event, time: new Date() } }));
   }
 
 
   function onMouseUp(event){
     event.preventDefault();
-    if(eventTypes.current.up === "touchend")
-      event = event.changedTouches[0]; // reassign to the touch event
+    mergeTouchEventProperties(event);
 
-    setState(prevState => ({ ...prevState, mouseDown: { isDown: false, nativeEvent: event, posX: event.pageX, posY: event.pageY, time: new Date() } }));
+    setState(prevState => ({ ...prevState, mouseDown: { isDown: false, nativeEvent: event, time: new Date() } }));
   }
 
 
   function onMouseMove(event){
     event.preventDefault();
-    if(eventTypes.current.move === "touchmove")
-      event = event.changedTouches[0]; // reassign to the touch event
+    mergeTouchEventProperties(event);
 
     setState(prevState => ({ ...prevState, mouseDrag: { isDragged: true, nativeEvent: event, dragX: event.clientX, dragY: event.clientY } }));
+  }
+
+
+  /* HELPER/MISC */
+
+
+  // add the 'down' event handler to the target
+  function addEventListeners(target){
+
+    if(typeof target === "string"){ // this is a string of the id of the target element
+      target = document.getElementById(target);
+    }
+    else{ // target is react ref
+      target = target.current;
+    }
+
+    if(target){
+      target.onmousedown = onMouseDown;
+      target.ontouchstart = onMouseDown;
+    }
+    // else{
+    //   console.warn("useMouseEvents: Could not find target to attach event listeners. Please make sure that the target is a React ref or an id string of the target element");
+    // }
+
+  }
+
+
+  // attach the properties of the touch event to the greater event object. This is so that mouse and touch event objects have
+  //  similar properties such as clientX, pageX, screenX etc.
+  function mergeTouchEventProperties(eventToMerge){
+
+    const touch = eventToMerge.changedTouches[0];
+
+    eventToMerge.clientX = touch.clientX;
+    eventToMerge.clientY = touch.clientY;
+
+    eventToMerge.pageX = touch.pageX;
+    eventToMerge.pageY = touch.pageY;
+
+    eventToMerge.screenX = touch.screenX;
+    eventToMerge.screenY = touch.screenY;
+
   }
 
 
