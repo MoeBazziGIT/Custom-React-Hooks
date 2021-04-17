@@ -84,6 +84,13 @@ export function useComponentLifecycleMethods(componentDidMountHandler, component
 }
 
 
+// force re render this component
+function useForceUpdate(){
+    const [value, setValue] = useState(0);
+    return () => setValue(value => (value + 1) % 32); // update the state to force render. max value is 31 -> [0, 31]
+}
+
+
 /* ------- STATE, PROPS AND VALUES ------- */
 
 
