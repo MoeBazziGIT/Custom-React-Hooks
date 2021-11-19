@@ -162,6 +162,96 @@ export function useMergeState(initialState) {
 
 /* ------- MISC ------- */
 
+export const useLocalStorage = (key, initialValue) => {
+  const item = window.localStorage.getItem(key);
+  const [value, setValue] = useState(item || initialValue);
+
+  useEffect(() => {
+    window.localStorage.setItem(key, value);
+  }, [value, key]);
+
+  return [value, setValue];
+};
+
+
+export const useMedia = () => {
+  const [isMobile, setMobile] = useState(false);
+
+  const onResize = () => {
+    const isMobile = window.innerWidth < 768;
+    setMobile(isMobile);
+  };
+
+  useLayoutEffect(() => {
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+    };
+  }, []);
+
+  return { isMobile };
+};
+
+
+export const useScroll = () => {
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  const onScroll = () => {
+    const scrollTop = window !== undefined ? window.pageYOffset : 0;
+
+    setIsScrolled(scrollTop > 0);
+  };
+
+  useEffect(() => {
+    // Learn more about how { passive: true } improves scrolling performance
+    // https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener#Improving_scrolling_performance_with_passive_listeners
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll, { passive: true });
+    };
+  }, []);
+
+  return { isScrolled };
+};
+
+
+export const useScrollFreeze = (isMenuOpen) => {
+  useLayoutEffect(() => {
+    const original = window.getComputedStyle(document.body).overflow;
+
+    if (isMenuOpen) {
+      document.body.style.overflow = "hidden";
+    }
+
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, [isMenuOpen]);
+};
+
+
+export const useTheme = () => {
+  const [theme, setTheme] = useLocalStorage("theme", "dark");
+
+  const toggleTheme = () =>
+    setTheme((prevTheme) => (prevTheme === "dark" ? "light" : "dark"));
+
+  useEffect(() => {
+    document.body.className = "";
+    document.body.classList.add(theme);
+  }, [theme]);
+
+  return [theme, toggleTheme];
+};
+
+
+export const useToggle = (initialState) => {
+  const [isToggled, setToggle] = useState(initialState);
+  const toggle = () => setToggle((prevState) => !prevState);
+  // return [isToggled, toggle];
+  return { isToggled, setToggle, toggle };
+};
+
 
 // provides mouse/touch events with customization such as dragging, double click, hold etc.
 export function useMouseEvents(eventCallbacks, targets, config){
