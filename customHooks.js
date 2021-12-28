@@ -8,7 +8,10 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 export function useComponentDidMount(componentDidMountHandler){
 
   // calling useEffect with an empty dependancy array only gets called when component mounts
-  useEffect(componentDidMountHandler, []);
+  useEffect(() => {
+    const onComponentWillUnMountHander = componentDidMountHandler();
+    return onComponentWillUnMountHander;
+  }, []);
 
 }
 
@@ -959,10 +962,7 @@ export function __DEPRECATED__useMouseEvents({ onSingleClickCallback, onDoubleCl
   return onMouseDown;
 }
 
-
-import {useEffect, useState} from 'react';
-
-export default function useDebounce(value, delay) {
+export function useDebounce(value, delay) {
   // State and setters for debounced value
   const [debouncedValue, setDebouncedValue] = useState(value);
 
@@ -987,7 +987,7 @@ export default function useDebounce(value, delay) {
 }
 
 
-export default function useHover() {
+export function useHover() {
   const [value, setValue] = useState(false);
 
   const handleMouseOver = useCallback(() => setValue(true), []);
@@ -1016,7 +1016,7 @@ export default function useHover() {
 }
 
 
-export default function useIsCameraAvailable() {
+export function useIsCameraAvailable() {
   const [cameraAvailable, setCameraAvailable] = useState(false);
 
   useEffect(() => {
@@ -1034,7 +1034,7 @@ export default function useIsCameraAvailable() {
 }
 
 
-export function useLocalStorage(key, initialValue) {
+export function useLocalStorage2(key, initialValue) {
   // State to store our value
   // Pass initial state function to useState so logic is only executed once
   const [storedValue, setStoredValue] = useState(() => {
@@ -1071,7 +1071,7 @@ export function useLocalStorage(key, initialValue) {
 }
 
 
-export default function useRightClick(callback) {
+export function useRightClick(callback) {
   const [elem, setElem] = useState(null);
   const inputCallbackRef = useRef(null);
   const callbackRef = useCallback((node) => {
@@ -1121,3 +1121,31 @@ export function useWindowSize() {
 
   return windowSize;
 }
+
+
+function useFileDialog(onSelectFile, options){
+
+  const defaultOptions = {
+    accept: '*',
+  	multiple: true,
+  };
+
+	function openFileDialog(){
+
+		const input = document.createElement('input');
+		input.type = 'file';
+		input.multiple = options.multiple || true; // default is true
+		input.accept = options.accept || "*"; // default is all file types
+
+		input.addEventListener("change", event => {
+			const { files } = event.target;
+			onSelectFile(files);
+		});
+
+		input.click();
+	};
+
+	return { openFileDialog };
+};
+
+const { openFileDialog } = useFileDialog()
