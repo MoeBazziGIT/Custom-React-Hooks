@@ -17,13 +17,13 @@ export function useComponentDidMount(componentDidMountHandler){
 
 
 // shorthand for the component will unmount effect
-export function useComponentWillUnMount(componentWillUnMountHandler, values){
+export function useComponentWillUnMount(componentWillUnMountHandler){
 
   useEffect(() => {
 
     // component will unmount
     return componentWillUnMountHandler;
-  }, values || []);
+  }, []);
 
 }
 
